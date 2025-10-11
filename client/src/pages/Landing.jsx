@@ -34,7 +34,7 @@ export default function Landing() {
             </p>
             
             <div className="flex items-center gap-3 justify-center">
-              <Link to="/trainer" className="px-6 py-3 rounded-lg bg-emerald-500 text-black font-semibold hover:bg-emerald-400 transition shadow-lg shadow-emerald-500/30">
+              <Link to="/lessons" className="px-6 py-3 rounded-lg bg-emerald-500 text-black font-semibold hover:bg-emerald-400 transition shadow-lg shadow-emerald-500/30">
                 Start Training
               </Link>
               <a href={Docs} target="_blank" rel="noopener noreferrer" className="px-6 py-3 rounded-lg border border-white/20 hover:bg-white/10 transition backdrop-blur-sm">
@@ -177,19 +177,19 @@ export default function Landing() {
                   <span className="text-lg">Third-Party Debt Collection Explained</span>
                 </li>
                 <li className="flex items-start gap-3 hover:text-emerald-400 transition cursor-pointer">
-                  <span className="font-bold text-emerald-400 min-w-[2rem]">7.</span>
+                  <span className="font-bold text-emerald-400 min-w-[2rem]">6.</span>
                   <span className="text-lg">The Art of the Collection Call</span>
                 </li>
                 <li className="flex items-start gap-3 hover:text-emerald-400 transition cursor-pointer">
-                  <span className="font-bold text-emerald-400 min-w-[2rem]">8.</span>
+                  <span className="font-bold text-emerald-400 min-w-[2rem]">7.</span>
                   <span className="text-lg">Essential Rules and Best Practices</span>
                 </li>
                 <li className="flex items-start gap-3 hover:text-emerald-400 transition cursor-pointer">
-                  <span className="font-bold text-emerald-400 min-w-[2rem]">9.</span>
+                  <span className="font-bold text-emerald-400 min-w-[2rem]">8.</span>
                   <span className="text-lg">Compliance Checklist and Quick Reference</span>
                 </li>
                 <li className="flex items-start gap-3 hover:text-emerald-400 transition cursor-pointer">
-                  <span className="font-bold text-emerald-400 min-w-[2rem]">10.</span>
+                  <span className="font-bold text-emerald-400 min-w-[2rem]">9.</span>
                   <span className="text-lg">Scenarios and Role-Playing Exercises</span>
                 </li>
               </ol>
@@ -281,7 +281,7 @@ export default function Landing() {
               <div className="mt-8 pt-6 border-t border-white/10 text-center">
                 <p className="text-xl font-bold text-white mb-2">Let's begin your journey.</p>
                 <Link 
-                  to="/trainer"
+                  to="/lessons"
                   className="inline-block mt-4 px-8 py-3 rounded-lg bg-emerald-500 text-black font-semibold hover:bg-emerald-400 transition shadow-lg shadow-emerald-500/30"
                 >
                   Start Your Training Now →

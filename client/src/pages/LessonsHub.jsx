@@ -1,21 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { LESSONS, getAllProgress, getOverallStats } from '../utils/lessonProgressStorage';
+import { LESSONS, getAllProgress, getOverallStats, resetAllProgress } from '../utils/lessonProgressStorage';
 import LessonProgressSidebar from '../components/LessonProgressSidebar';
+import Navbar from '../components/Navbar';
 
 export default function LessonsHub() {
   const [allProgress, setAllProgress] = useState(null);
   const [stats, setStats] = useState(null);
+  const [godMode, setGodMode] = useState(false);
 
   useEffect(() => {
     loadProgress();
-  }, []);
+    // Check if God Mode is enabled in localStorage
+    const savedGodMode = localStorage.getItem('protrain_god_mode') === 'true';
+    setGodMode(savedGodMode);
+    
+    // Keyboard shortcut: Ctrl+Shift+G to toggle God Mode
+    const handleKeyPress = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'G') {
+        e.preventDefault();
+        toggleGodMode();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [godMode]);
 
   const loadProgress = () => {
     const progress = getAllProgress();
     const overallStats = getOverallStats();
     setAllProgress(progress);
     setStats(overallStats);
+  };
+
+  const toggleGodMode = () => {
+    const newGodMode = !godMode;
+    setGodMode(newGodMode);
+    localStorage.setItem('protrain_god_mode', newGodMode.toString());
+    
+    if (newGodMode) {
+      // Just unlock all lessons for access - don't complete them!
+      const progress = getAllProgress();
+      LESSONS.forEach(lesson => {
+        if (progress.lessons[lesson.id]) {
+          // Just mark as started so they're accessible
+          if (!progress.lessons[lesson.id].startedAt) {
+            progress.lessons[lesson.id].startedAt = new Date().toISOString();
+          }
+          // Don't change completion status, scores, or XP
+          // Keep everything at 0 so user can demo the actual training
+        }
+      });
+      
+      localStorage.setItem('protrain_lesson_progress', JSON.stringify(progress));
+      loadProgress();
+    }
+  };
+
+  const handleResetProgress = () => {
+    if (window.confirm('⚠️ This will delete ALL your progress! Are you sure?\n\nThis action cannot be undone.')) {
+      resetAllProgress();
+      localStorage.removeItem('protrain_god_mode');
+      setGodMode(false);
+      loadProgress();
+      alert('✅ All progress has been reset! Starting fresh.');
+    }
   };
 
   if (!allProgress || !stats) {
@@ -28,14 +78,63 @@ export default function LessonsHub() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <Navbar />
       <LessonProgressSidebar />
       
-      <div className="max-w-7xl mx-auto px-4 py-20 pr-[400px]">
+      <div className="max-w-7xl mx-auto px-4 pt-24 pb-20 pr-[400px]">
         {/* Header */}
         <div className="mb-12 text-center">
-          <h1 className="font-display text-5xl md:text-6xl font-bold text-white mb-4">
-            Interactive Training Lessons
-          </h1>
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex-1"></div>
+            <h1 className="font-display text-5xl md:text-6xl font-bold text-white flex-1">
+              Interactive Training Lessons
+            </h1>
+            
+            {/* God Mode Toggle & Reset Button */}
+            <div className="flex-1 flex justify-end gap-3">
+              <button
+                onClick={handleResetProgress}
+                className="group relative px-4 py-3 rounded-xl font-bold text-sm transition-all duration-300 bg-slate-800/50 border border-red-700/50 text-red-400 hover:border-red-500 hover:bg-red-500/10"
+                title="Reset all progress and start fresh"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🔄</span>
+                  <span>Reset</span>
+                </div>
+              </button>
+              
+              <button
+                onClick={toggleGodMode}
+                className={`group relative px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${
+                  godMode
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/50'
+                    : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:border-purple-500/50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{godMode ? '⚡' : '🔒'}</span>
+                  <span>God Mode</span>
+                  {godMode && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50" />
+                  )}
+                </div>
+                {godMode && (
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 blur-xl opacity-50 -z-10 animate-pulse" />
+                )}
+              </button>
+            </div>
+          </div>
+          
+          {godMode && (
+            <div className="mb-6 mx-auto max-w-2xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4 animate-pulse">
+              <p className="text-purple-300 font-semibold flex items-center justify-center gap-2">
+                <span className="text-2xl">⚡</span>
+                <span>GOD MODE ACTIVE - All lessons unlocked for demo!</span>
+                <span className="text-2xl">⚡</span>
+              </p>
+            </div>
+          )}
+          
           <p className="text-xl text-slate-300 mb-6">
             Master debt collection through immersive, AI-powered experiences
           </p>
@@ -147,6 +246,27 @@ export default function LessonsHub() {
           })}
         </div>
 
+        {/* Pagination */}
+        <div className="mt-8 flex items-center justify-center gap-3">
+          <button
+            disabled
+            className="px-6 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-500 cursor-not-allowed flex items-center gap-2"
+          >
+            <span>←</span>
+            <span>Previous</span>
+          </button>
+          <div className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg text-white font-semibold">
+            Page 1 of 3
+          </div>
+          <button
+            onClick={() => alert('🎉 More lessons coming soon!\n\nStay tuned for updates!')}
+            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg text-white font-semibold hover:from-emerald-600 hover:to-cyan-600 transition flex items-center gap-2"
+          >
+            <span>Next</span>
+            <span>→</span>
+          </button>
+        </div>
+
         {/* Info Section */}
         <div className="mt-12 p-6 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl">
           <h3 className="text-xl font-bold text-white mb-2">🎯 How It Works</h3>
@@ -173,6 +293,69 @@ export default function LessonsHub() {
             </li>
           </ul>
         </div>
+
+        {/* Appendix Section */}
+        <div className="mt-8 p-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-2xl">
+          <h3 className="text-xl font-bold text-white mb-4">📚 Reference Materials</h3>
+          <div className="grid md:grid-cols-4 gap-4">
+            <Link
+              to="/appendix/a"
+              className="group p-4 bg-slate-800/50 border border-white/10 rounded-xl hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all"
+            >
+              <div className="text-3xl mb-2">📖</div>
+              <div className="text-white font-semibold group-hover:text-blue-400 transition">Glossary of Terms</div>
+              <div className="text-slate-400 text-sm">Appendix A</div>
+            </Link>
+            
+            <Link
+              to="/appendix/b"
+              className="group p-4 bg-slate-800/50 border border-white/10 rounded-xl hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all"
+            >
+              <div className="text-3xl mb-2">📍</div>
+              <div className="text-white font-semibold group-hover:text-blue-400 transition">State-Specific Guide</div>
+              <div className="text-slate-400 text-sm">Appendix B</div>
+            </Link>
+            
+            <Link
+              to="/appendix/c"
+              className="group p-4 bg-slate-800/50 border border-white/10 rounded-xl hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all"
+            >
+              <div className="text-3xl mb-2">📞</div>
+              <div className="text-white font-semibold group-hover:text-blue-400 transition">Emergency Contacts</div>
+              <div className="text-slate-400 text-sm">Appendix C</div>
+            </Link>
+            
+            <Link
+              to="/appendix/d"
+              className="group p-4 bg-slate-800/50 border border-white/10 rounded-xl hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/20 transition-all"
+            >
+              <div className="text-3xl mb-2">✅</div>
+              <div className="text-white font-semibold group-hover:text-blue-400 transition">Compliance Checklist</div>
+              <div className="text-slate-400 text-sm">Appendix D</div>
+            </Link>
+          </div>
+        </div>
+      </div>
+      
+      {/* God Mode Indicator - Bottom Right */}
+      {godMode && (
+        <div className="fixed bottom-8 right-8 z-50 animate-bounce">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur-xl animate-pulse" />
+            <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2">
+              <span className="text-xl">⚡</span>
+              <span className="font-bold text-sm">GOD MODE</span>
+              <span className="text-xl">⚡</span>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Keyboard Shortcut Hint */}
+      <div className="fixed bottom-4 left-4 text-xs text-slate-600 opacity-50 hover:opacity-100 transition-opacity">
+        <kbd className="px-2 py-1 bg-slate-800 rounded border border-slate-700">Ctrl</kbd> + 
+        <kbd className="px-2 py-1 bg-slate-800 rounded border border-slate-700 mx-1">Shift</kbd> + 
+        <kbd className="px-2 py-1 bg-slate-800 rounded border border-slate-700">G</kbd> = Toggle God Mode
       </div>
     </div>
   );

@@ -7,10 +7,10 @@
 const STORAGE_KEY = 'protrain_lesson_progress';
 const USER_NAME = 'Pradeep Kumawat';
 
-// Lesson configuration
+// Lesson configuration - 6 core lessons (renumbered 1-6)
 export const LESSONS = [
   {
-    id: 2,
+    id: 1,
     title: 'Understanding Debt and Why It Matters',
     description: 'Follow an interactive story of an unaware driver and learn about debt consequences',
     icon: '📚',
@@ -18,7 +18,7 @@ export const LESSONS = [
     type: 'interactive-story'
   },
   {
-    id: 3,
+    id: 2,
     title: 'Professional Debt Collection',
     description: 'Navigate complex scenarios in this choose-your-own-adventure module',
     icon: '🎯',
@@ -26,7 +26,7 @@ export const LESSONS = [
     type: 'choose-adventure'
   },
   {
-    id: 4,
+    id: 3,
     title: 'The Regulatory Landscape',
     description: 'Master compliance rules with AI-powered simulation and real-time feedback',
     icon: '⚖️',
@@ -34,15 +34,7 @@ export const LESSONS = [
     type: 'compliance-sim'
   },
   {
-    id: 5,
-    title: 'Third-Party Debt Collection',
-    description: 'Map the debt lifecycle with interactive drag-and-drop exercises',
-    icon: '🔄',
-    totalLevels: 4,
-    type: 'drag-drop'
-  },
-  {
-    id: 7,
+    id: 4,
     title: 'The Art of the Collection Call',
     description: 'Practice with AI consumers showing various emotional states',
     icon: '💬',
@@ -50,15 +42,7 @@ export const LESSONS = [
     type: 'role-play'
   },
   {
-    id: 8,
-    title: 'Essential Rules and Best Practices',
-    description: 'Get real-time guidance from your compliance bot co-pilot',
-    icon: '🤖',
-    totalLevels: 7,
-    type: 'compliance-bot'
-  },
-  {
-    id: 9,
+    id: 5,
     title: 'Compliance Checklist and Quick Reference',
     description: 'Test your knowledge with fast-paced interactive quiz challenges',
     icon: '✅',
@@ -66,12 +50,44 @@ export const LESSONS = [
     type: 'quiz-game'
   },
   {
-    id: 10,
-    title: 'Scenarios and Role-Playing Exercises',
-    description: 'Face dynamic AI-generated scenarios and track your improvement',
+    id: 6,
+    title: 'Practice Scenarios and Role-Playing',
+    description: 'Master all 25 real-world scenarios with dynamic AI consumers',
     icon: '🎭',
-    totalLevels: 12,
-    type: 'dynamic-scenarios'
+    totalLevels: 25,
+    type: 'practice-scenarios'
+  }
+];
+
+// Appendix sections for reference materials
+export const APPENDICES = [
+  {
+    id: 'A',
+    title: 'Appendix A: Quick Reference Guide',
+    description: 'Essential rules, time zones, and compliance checklists',
+    icon: '📋',
+    type: 'reference'
+  },
+  {
+    id: 'B',
+    title: 'Appendix B: State-Specific Regulations',
+    description: 'Detailed requirements for each state you operate in',
+    icon: '🗺️',
+    type: 'reference'
+  },
+  {
+    id: 'C',
+    title: 'Appendix C: Sample Scripts and Templates',
+    description: 'Proven scripts for various collection scenarios',
+    icon: '📝',
+    type: 'reference'
+  },
+  {
+    id: 'D',
+    title: 'Appendix D: Glossary and Resources',
+    description: 'Terms, definitions, and additional learning resources',
+    icon: '📖',
+    type: 'reference'
   }
 ];
 
@@ -114,7 +130,88 @@ export function getAllProgress() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData));
       return defaultData;
     }
-    return JSON.parse(stored);
+    
+    const progressData = JSON.parse(stored);
+    
+    // Migrate old lesson IDs to new ones if needed
+    // Check if we have old lesson structure (2,3,4,5,7,8,9,10) instead of new (1,2,3,4,5,6,7,8)
+    const hasOldStructure = progressData.lessons && (progressData.lessons[2] || progressData.lessons[10]);
+    
+    if (hasOldStructure && !progressData.lessons[1]) {
+      // Migration needed - map old IDs to new IDs
+      const oldToNewMap = {
+        2: 1,
+        3: 2,
+        4: 3,
+        5: 4,
+        7: 5,
+        8: 6,
+        9: 7,
+        10: 8
+      };
+      
+      const newLessons = {};
+      Object.keys(oldToNewMap).forEach(oldId => {
+        const newId = oldToNewMap[oldId];
+        if (progressData.lessons[oldId]) {
+          newLessons[newId] = {
+            ...progressData.lessons[oldId],
+            lessonId: newId
+          };
+        }
+      });
+      
+      // Ensure all lessons exist
+      LESSONS.forEach(lesson => {
+        if (!newLessons[lesson.id]) {
+          newLessons[lesson.id] = {
+            lessonId: lesson.id,
+            currentLevel: 1,
+            levelsCompleted: [],
+            levelScores: {},
+            totalAttempts: 0,
+            averageScore: 0,
+            completionPercentage: 0,
+            isCompleted: false,
+            startedAt: null,
+            completedAt: null,
+            timeSpentMinutes: 0
+          };
+        }
+      });
+      
+      progressData.lessons = newLessons;
+      saveAllProgress(progressData);
+      console.log('✅ Migrated lesson progress from old structure to new (1-8)');
+    }
+    
+    // Ensure all current lessons exist in progress data
+    let needsSave = false;
+    LESSONS.forEach(lesson => {
+      if (!progressData.lessons[lesson.id]) {
+        progressData.lessons[lesson.id] = {
+          lessonId: lesson.id,
+          currentLevel: 1,
+          levelsCompleted: [],
+          levelScores: {},
+          totalAttempts: 0,
+          averageScore: 0,
+          completionPercentage: 0,
+          isCompleted: false,
+          startedAt: null,
+          completedAt: null,
+          timeSpentMinutes: 0
+        };
+        needsSave = true;
+      }
+    });
+    
+    if (needsSave) {
+      saveAllProgress(progressData);
+      console.log('✅ Initialized missing lessons in progress data');
+    }
+    
+    return progressData;
   } catch (error) {
     console.error('Error reading lesson progress:', error);
     return getDefaultProgress();
@@ -148,6 +245,13 @@ export function getLessonProgress(lessonId) {
  */
 export function startLesson(lessonId) {
   const allProgress = getAllProgress();
+  
+  // Ensure lesson exists
+  if (!allProgress.lessons[lessonId]) {
+    console.error(`Lesson ${lessonId} not found in progress data`);
+    return null;
+  }
+  
   if (!allProgress.lessons[lessonId].startedAt) {
     allProgress.lessons[lessonId].startedAt = new Date().toISOString();
     saveAllProgress(allProgress);
@@ -299,6 +403,10 @@ export function getLessonById(lessonId) {
  * Check if a level is unlocked
  */
 export function isLevelUnlocked(lessonId, levelNumber) {
+  // Check for God Mode first
+  const godMode = localStorage.getItem('protrain_god_mode') === 'true';
+  if (godMode) return true;
+  
   const lessonProgress = getLessonProgress(lessonId);
   if (!lessonProgress) return false;
   

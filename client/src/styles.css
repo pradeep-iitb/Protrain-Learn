@@ -27,6 +27,27 @@ body {
   -webkit-backface-visibility: hidden;
 }
 
+/* Hide scrollbar for all browsers while keeping scroll functionality */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
+}
+
+/* Optional: Show scrollbar on hover for better UX (remove if you want them completely hidden) */
+*:hover::-webkit-scrollbar {
+  display: none;
+}
+
+*:hover {
+  scrollbar-width: none;
+}
+
 .font-display { font-family: 'Playfair Display', Georgia, 'Times New Roman', serif; }
 
 /* Animated border animation */
@@ -49,3 +70,20 @@ body {
 .animated-border-box:hover {
   animation-duration: 1.5s;
 }
+
+/* Fade-in animation for idle suggestion */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+

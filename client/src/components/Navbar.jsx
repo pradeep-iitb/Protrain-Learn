@@ -11,11 +11,11 @@ export default function Navbar() {
           <img src={logo} alt="ProTrain logo" className="h-14 rounded-lg w-35 object-cover" onError={(e)=>{e.currentTarget.style.display='none';}} />
         </Link>
         <div className="ml-auto flex items-center gap-1">
-          <NavLink to="/lessons" className={link}>📚 Lessons</NavLink>
-          <NavLink to="/trainer" className={link}>🎯 Trainer</NavLink>
-          <a href="#solutions" className={link}>Our solutions</a>
-          <a href="#company" className={link}>Company</a>
-          <a href="#careers" className={link}>Careers</a>
+          <a href="#tech" className={link}>Tech Stack</a>
+          <a href="#features" className={link}>Features</a>
+          <a href="#contents" className={link}>Training Manual</a>
+          <a href="#mission" className={link}>Mission</a>
+          <a href="#role" className={link}>Your Role</a>
         </div>
       </nav>
     </header>

@@ -24,3 +24,33 @@ export function speak(text, { onEnd } = {}) {
   if (onEnd) utter.addEventListener('end', onEnd);
   window.speechSynthesis.speak(utter);
 }
+
+// Lesson Progress API calls
+export async function getUserProgress(userName) {
+  const res = await fetch(`${API_BASE}/api/progress/${encodeURIComponent(userName)}`);
+  return res.json();
+}
+
+export async function saveLevelScore(userName, lessonId, levelNumber, scoreData) {
+  const res = await fetch(`${API_BASE}/api/progress/${encodeURIComponent(userName)}/lesson/${lessonId}/level/${levelNumber}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(scoreData)
+  });
+  return res.json();
+}
+
+export async function getUserStats(userName) {
+  const res = await fetch(`${API_BASE}/api/progress/${encodeURIComponent(userName)}/stats`);
+  return res.json();
+}
+
+// AI-powered feedback generation
+export async function generateAIFeedback(context) {
+  const res = await fetch(`${API_BASE}/api/generate-feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(context)
+  });
+  return res.json();
+}
