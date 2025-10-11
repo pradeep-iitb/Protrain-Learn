@@ -48,11 +48,6 @@ export default function Landing() {
   return (
     <div className="relative min-h-screen bg-black text-slate-200 overflow-x-hidden">
       <Navbar />
-      
-      {/* Galaxy background - fixed positioning with fallback black background */}
-      <div className="fixed inset-0 z-0 bg-black">
-        <Galaxy mouseRepulsion density={1} glowIntensity={0.6} saturation={0.6} hueShift={150} />
-      </div>
 
       {/* Navigation Buttons - Fixed on right side */}
       <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-2">
@@ -76,9 +71,14 @@ export default function Landing() {
       {/* Main content container - GPU accelerated */}
       <main className="relative z-10 will-change-scroll" style={{ transform: 'translateZ(0)' }}>
         
-        {/* HERO SECTION */}
-        <section id="hero" className="min-h-screen flex items-center justify-center px-4 bg-black/50 backdrop-blur-sm">
-          <div className="max-w-3xl mx-auto text-center">
+        {/* HERO SECTION - With Galaxy Background */}
+        <section id="hero" className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
+          {/* Galaxy background only for hero */}
+          <div className="absolute inset-0 z-0">
+            <Galaxy mouseRepulsion density={1} glowIntensity={0.6} saturation={0.6} hueShift={150} />
+          </div>
+          
+          <div className="relative z-10 max-w-3xl mx-auto text-center">
             <p className="text-sm md:text-base text-emerald-400 font-semibold tracking-wider uppercase mb-4">
               AI-Powered Collections Agent Trainer 
             </p>
@@ -103,8 +103,12 @@ export default function Landing() {
         </section>
 
         {/* TECH STACK SECTION */}
-        <section id="tech" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
-          <div className="max-w-6xl mx-auto">
+        <section id="tech" className="relative min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 overflow-hidden">
+          {/* Decorative gradient orbs */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 max-w-6xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               Our Tech Stack
             </h2>
@@ -157,8 +161,12 @@ export default function Landing() {
         </section>
 
         {/* FEATURES SECTION */}
-        <section id="features" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
-          <div className="max-w-6xl mx-auto">
+        <section id="features" className="relative min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-violet-950 via-slate-900 to-slate-950 overflow-hidden">
+          {/* Decorative gradient orbs */}
+          <div className="absolute top-1/4 left-0 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 max-w-6xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               Our Features
             </h2>
@@ -205,8 +213,12 @@ export default function Landing() {
         </section>
 
         {/* TABLE OF CONTENTS SECTION */}
-        <section id="contents" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto">
+        <section id="contents" className="relative min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-slate-950 via-cyan-950 to-slate-900 overflow-hidden">
+          {/* Decorative gradient orbs */}
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 max-w-4xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               Table of Contents
             </h2>
@@ -260,8 +272,12 @@ export default function Landing() {
         </section>
 
         {/* WHAT THIS MANUAL COVERS SECTION */}
-        <section id="covers" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto">
+        <section id="covers" className="relative min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 overflow-hidden">
+          {/* Decorative gradient orbs */}
+          <div className="absolute top-1/3 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/3 left-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 max-w-4xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               What This Manual Covers
             </h2>
@@ -297,8 +313,12 @@ export default function Landing() {
         </section>
 
         {/* OUR MISSION SECTION */}
-        <section id="mission" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
-          <div className="max-w-5xl mx-auto">
+        <section id="mission" className="relative min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-slate-900 via-amber-950 to-slate-950 overflow-hidden">
+          {/* Decorative gradient orbs */}
+          <div className="absolute top-0 left-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 max-w-5xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               Our Mission at Resolve First Collections
             </h2>
@@ -335,8 +355,12 @@ export default function Landing() {
         </section>
 
         {/* YOUR ROLE MATTERS SECTION */}
-        <section id="role" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto">
+        <section id="role" className="relative min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-slate-950 via-rose-950 to-slate-900 overflow-hidden">
+          {/* Decorative gradient orbs */}
+          <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 max-w-4xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               Your Role Matters
             </h2>
