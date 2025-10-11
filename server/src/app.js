@@ -14,6 +14,8 @@ app.use(
       if (!origin) return cb(null, true); // same-origin or curl
       if (origin === CORS_CONFIG.ORIGIN) return cb(null, true);
       if (origin.startsWith('http://localhost:')) return cb(null, true);
+      // Allow all Vercel preview and production deployments
+      if (origin.includes('vercel.app')) return cb(null, true);
       return cb(new Error('Not allowed by CORS'));
     },
     credentials: CORS_CONFIG.CREDENTIALS
