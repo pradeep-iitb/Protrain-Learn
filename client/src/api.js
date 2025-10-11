@@ -18,8 +18,9 @@ export async function evaluate(sessionId) {
   return res.json();
 }
 
-export function speak(text) {
+export function speak(text, { onEnd } = {}) {
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'en-US';
+  if (onEnd) utter.addEventListener('end', onEnd);
   window.speechSynthesis.speak(utter);
 }
