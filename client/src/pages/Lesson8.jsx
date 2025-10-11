@@ -29,6 +29,7 @@ export default function Lesson8() {
   const [speaking, setSpeaking] = useState(false);
   const [showIdleSuggestion, setShowIdleSuggestion] = useState(false);
   const [idleTimer, setIdleTimer] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState('ready'); // ready, connecting, connected, speaking
   const { transcript, listening, start, stop, resetTranscript, supported } = useSpeech();
   const disabled = useMemo(() => !supported, [supported]);
   
@@ -69,10 +70,12 @@ export default function Lesson8() {
       setError('');
       if (!text?.trim()) {
         setError('Please provide a message to send.');
+        setConnectionStatus('ready');
         return;
       }
       
       console.log('Sending message:', text, 'with persona:', persona);
+      setConnectionStatus('connecting');
       setBusy(true);
       
       const res = await simulate({ message: text, persona, sessionId });
@@ -80,6 +83,7 @@ export default function Lesson8() {
       
       if (res?.error) {
         setError(res.error);
+        setConnectionStatus('ready');
         return;
       }
       
@@ -87,6 +91,7 @@ export default function Lesson8() {
       
       if (sid) {
         setSessionId(sid);
+        setConnectionStatus('connected');
         console.log('Session ID:', sid);
       }
       
@@ -94,28 +99,38 @@ export default function Lesson8() {
       
       if (reply) {
         console.log('Borrower reply:', reply);
+        setConnectionStatus('speaking');
         setSpeaking(true);
         
         // Use proper TTS with cleanup and enhanced voice settings
         const utterance = new SpeechSynthesisUtterance(reply);
         utterance.lang = 'en-US';
-        utterance.rate = 1.0;  // Normal speed
+        utterance.rate = 0.95;  // Slightly slower for clarity
         utterance.pitch = 1.0;  // Normal pitch
         utterance.volume = 1.0;  // Full volume
         
         utterance.onstart = () => {
           console.log('Speech started');
+          setConnectionStatus('speaking');
           setSpeaking(true);
         };
         
         utterance.onend = () => {
           console.log('Speech ended');
           setSpeaking(false);
+          setConnectionStatus('connected');
+          // Auto-reset to ready after 2 seconds
+          setTimeout(() => {
+            if (!listening && !busy) {
+              setConnectionStatus('ready');
+            }
+          }, 2000);
         };
         
         utterance.onerror = (e) => {
           console.error('TTS error:', e);
           setSpeaking(false);
+          setConnectionStatus('ready');
           setError(`Voice synthesis error: ${e.error}. Make sure your browser supports text-to-speech.`);
         };
         
@@ -128,10 +143,12 @@ export default function Lesson8() {
         }, 100);
       } else {
         console.warn('No reply text to speak');
+        setConnectionStatus('ready');
       }
     } catch (e) {
       console.error('send() failed:', e);
       setError(`Failed to send message: ${e.message}`);
+      setConnectionStatus('ready');
     } finally {
       setBusy(false);
     }
@@ -141,19 +158,23 @@ export default function Lesson8() {
     console.log('Starting speech recognition...');
     setError('');
     setShowIdleSuggestion(false); // Hide suggestion when user starts speaking
+    setConnectionStatus('connecting');
     resetTranscript();
     try {
       start();
       console.log('Listening started');
+      setConnectionStatus('connected');
     } catch (e) {
       console.error('Failed to start listening:', e);
       setError('Could not start microphone. Please check permissions.');
+      setConnectionStatus('ready');
     }
   };
 
   const onStop = async () => {
     console.log('Stopping speech recognition...');
     setShowIdleSuggestion(false); // Hide suggestion when sending voice message
+    setConnectionStatus('connecting');
     try {
       if (listening) {
         stop();
@@ -163,6 +184,7 @@ export default function Lesson8() {
       
       if (!text) {
         setError('No speech detected. Please try again.');
+        setConnectionStatus('ready');
         return;
       }
       
@@ -170,6 +192,7 @@ export default function Lesson8() {
     } catch (e) {
       console.error('onStop failed:', e);
       setError(`Error: ${e.message}`);
+      setConnectionStatus('ready');
     } finally {
       resetTranscript();
     }
@@ -260,6 +283,7 @@ export default function Lesson8() {
     resetTranscript();
     window.speechSynthesis.cancel();
     setSpeaking(false);
+    setConnectionStatus('ready');
   };
 
   const getLevelScore = (levelId) => {
@@ -373,20 +397,51 @@ export default function Lesson8() {
           </div>
         )}
 
-        {/* Voice Status */}
-        <div className={`mb-4 flex items-center gap-3 p-4 rounded-lg backdrop-blur border transition-all duration-300 ${
-          speaking 
+        {/* Connection Status Bar */}
+        <div className={`mb-4 flex items-center gap-3 p-4 rounded-lg backdrop-blur border transition-all duration-500 ${
+          connectionStatus === 'speaking' 
             ? 'bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/50 shadow-lg shadow-green-500/20' 
+            : connectionStatus === 'connecting'
+            ? 'bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-amber-500/50 shadow-lg shadow-amber-500/20'
+            : connectionStatus === 'connected'
+            ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500/50 shadow-lg shadow-cyan-500/20'
             : 'bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-white/10'
         }`}>
-          <VoiceOrb active={speaking} />
+          <div className={`relative transition-all duration-300 ${connectionStatus !== 'ready' ? 'scale-110' : 'scale-100'}`}>
+            <VoiceOrb active={connectionStatus === 'speaking' || connectionStatus === 'connecting'} />
+            {connectionStatus === 'connecting' && (
+              <div className="absolute -inset-2 border-2 border-amber-400 rounded-full animate-ping opacity-75" />
+            )}
+          </div>
           <div className="flex-1">
-            <span className={`text-sm font-semibold transition-colors ${speaking ? 'text-green-400' : 'text-slate-300'}`}>
-              AI Borrower {speaking ? 'speaking…' : 'idle'}
-            </span>
-            {speaking && (
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-semibold transition-colors ${
+                connectionStatus === 'speaking' ? 'text-green-400' : 
+                connectionStatus === 'connecting' ? 'text-amber-400' :
+                connectionStatus === 'connected' ? 'text-cyan-400' :
+                'text-slate-300'
+              }`}>
+                {connectionStatus === 'speaking' ? '🔊 AI Borrower Speaking' : 
+                 connectionStatus === 'connecting' ? '⏳ Connecting to AI...' :
+                 connectionStatus === 'connected' ? '✅ Connected - Ready' :
+                 '💤 Idle - Click Start to Begin'}
+              </span>
+              {connectionStatus === 'connecting' && (
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              )}
+            </div>
+            {connectionStatus === 'speaking' && (
               <div className="text-xs text-green-300 mt-1 animate-pulse">
-                🔊 Voice output active
+                🎧 Listen carefully and prepare your response
+              </div>
+            )}
+            {connectionStatus === 'connected' && !speaking && (
+              <div className="text-xs text-cyan-300 mt-1">
+                👂 Agent ready - Your turn to speak
               </div>
             )}
           </div>
@@ -395,6 +450,7 @@ export default function Lesson8() {
               onClick={() => {
                 window.speechSynthesis.cancel();
                 setSpeaking(false);
+                setConnectionStatus('ready');
               }}
               className="px-3 py-1 bg-red-500/20 border border-red-500/50 rounded text-red-400 text-xs hover:bg-red-500/30 transition"
               title="Stop speaking"
@@ -410,32 +466,59 @@ export default function Lesson8() {
         </div>
 
         {/* Voice Controls */}
-        <div className="mb-4 flex items-center gap-3 p-4 rounded-lg bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur border border-white/10">
-          <button 
-            onClick={onStart} 
-            disabled={disabled || listening || busy} 
-            className="px-4 py-2 bg-cyan-500 text-black rounded-lg font-semibold disabled:opacity-50 hover:bg-cyan-400 transition"
-          >
-            🎙️ Start Voice
-          </button>
-          <button 
-            onClick={onStop} 
-            disabled={busy || (!listening && !transcript?.trim())} 
-            className="px-4 py-2 bg-slate-700 text-white rounded-lg font-semibold disabled:opacity-50 hover:bg-slate-600 transition"
-          >
-            ⏹ Stop & Send
-          </button>
-          <span className="text-sm text-slate-400 flex-1">
-            {busy ? '⏳ Working…' : listening ? '🎤 Listening…' : '💤 Idle'} 
-            {transcript && <span className="ml-2 text-cyan-400">"{transcript}"</span>}
-          </span>
-          <button 
-            onClick={onEvaluate} 
-            disabled={!sessionId || busy} 
-            className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg font-semibold disabled:opacity-50 hover:from-emerald-600 hover:to-green-600 transition"
-          >
-            📊 Evaluate
-          </button>
+        <div className="mb-4 flex flex-col gap-3 p-4 rounded-lg bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur border border-white/10">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onStart} 
+              disabled={disabled || listening || busy || speaking} 
+              className={`px-6 py-3 rounded-lg font-semibold disabled:opacity-50 transition-all duration-300 ${
+                listening 
+                  ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse' 
+                  : 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105'
+              }`}
+            >
+              {listening ? '🔴 Recording...' : '🎙️ Start Voice'}
+            </button>
+            <button 
+              onClick={onStop} 
+              disabled={busy || (!listening && !transcript?.trim())} 
+              className="px-6 py-3 bg-gradient-to-r from-slate-700 to-slate-600 text-white rounded-lg font-semibold disabled:opacity-50 hover:from-slate-600 hover:to-slate-500 transition-all duration-300 hover:scale-105"
+            >
+              ⏹ Stop & Send
+            </button>
+            <div className="flex-1" />
+            <button 
+              onClick={onEvaluate} 
+              disabled={!sessionId || busy || messages.length < 4} 
+              className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg font-semibold disabled:opacity-50 hover:from-emerald-600 hover:to-green-600 transition-all duration-300 hover:scale-105"
+              title={messages.length < 4 ? 'Have at least 2 exchanges before evaluating' : 'Evaluate your performance'}
+            >
+              📊 Evaluate
+            </button>
+          </div>
+          
+          {/* Live Transcript Display */}
+          <div className={`min-h-[60px] p-3 rounded-lg border transition-all duration-300 ${
+            listening 
+              ? 'bg-cyan-500/10 border-cyan-500/50' 
+              : 'bg-slate-900/50 border-slate-700/50'
+          }`}>
+            <div className="flex items-start gap-2">
+              <span className="text-xs font-semibold text-slate-400 mt-1">
+                {busy ? '⏳ Processing...' : listening ? '🎤 LISTENING:' : transcript ? '📝 Last Captured:' : '💬 Your speech will appear here'}
+              </span>
+            </div>
+            {transcript && (
+              <p className={`mt-2 text-sm transition-colors ${listening ? 'text-cyan-300' : 'text-slate-300'}`}>
+                "{transcript}"
+              </p>
+            )}
+            {!transcript && !listening && !busy && (
+              <p className="mt-2 text-xs text-slate-500 italic">
+                Click "Start Voice" and speak your message clearly. Click "Stop & Send" when done.
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Idle Suggestion Box */}

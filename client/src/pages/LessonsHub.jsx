@@ -40,11 +40,11 @@ export default function LessonsHub() {
     localStorage.setItem('protrain_god_mode', newGodMode.toString());
     
     if (newGodMode) {
-      // Just unlock all lessons for access - don't complete them!
+      // Unlock all lessons for access - don't complete them!
       const progress = getAllProgress();
       LESSONS.forEach(lesson => {
         if (progress.lessons[lesson.id]) {
-          // Just mark as started so they're accessible
+          // Mark as started so they're accessible
           if (!progress.lessons[lesson.id].startedAt) {
             progress.lessons[lesson.id].startedAt = new Date().toISOString();
           }
@@ -55,16 +55,13 @@ export default function LessonsHub() {
       
       localStorage.setItem('protrain_lesson_progress', JSON.stringify(progress));
       loadProgress();
-    }
-  };
-
-  const handleResetProgress = () => {
-    if (window.confirm('⚠️ This will delete ALL your progress! Are you sure?\n\nThis action cannot be undone.')) {
-      resetAllProgress();
-      localStorage.removeItem('protrain_god_mode');
-      setGodMode(false);
+      
+      // Show success message
+      alert('⚡ GOD MODE ACTIVATED!\n\n✅ All lessons are now unlocked\n🎯 You can access any lesson for demo purposes\n📊 Progress tracking is still active\n\nClick the button again to return to normal mode.');
+    } else {
+      // When disabling god mode, reload progress to show current state
       loadProgress();
-      alert('✅ All progress has been reset! Starting fresh.');
+      alert('🔒 GOD MODE DEACTIVATED\n\n✅ Lessons are now locked based on your actual progress\n📚 Complete lessons in order to unlock the next ones');
     }
   };
 
@@ -90,30 +87,20 @@ export default function LessonsHub() {
               Interactive Training Lessons
             </h1>
             
-            {/* God Mode Toggle & Reset Button */}
-            <div className="flex-1 flex justify-end gap-3">
-              <button
-                onClick={handleResetProgress}
-                className="group relative px-4 py-3 rounded-xl font-bold text-sm transition-all duration-300 bg-slate-800/50 border border-red-700/50 text-red-400 hover:border-red-500 hover:bg-red-500/10"
-                title="Reset all progress and start fresh"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">🔄</span>
-                  <span>Reset</span>
-                </div>
-              </button>
-              
+            {/* God Mode Toggle Button */}
+            <div className="flex-1 flex justify-end">
               <button
                 onClick={toggleGodMode}
                 className={`group relative px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${
                   godMode
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/50'
-                    : 'bg-slate-800/50 border border-slate-700 text-slate-400 hover:border-purple-500/50'
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70 hover:scale-105'
+                    : 'bg-slate-800/50 border-2 border-slate-700 text-slate-400 hover:border-purple-500/50 hover:text-purple-400'
                 }`}
+                title={godMode ? 'Disable God Mode - Lock lessons again' : 'Enable God Mode - Unlock all lessons for demo'}
               >
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{godMode ? '⚡' : '🔒'}</span>
-                  <span>God Mode</span>
+                  <span>{godMode ? 'God Mode Active' : 'Unlock All Lessons'}</span>
                   {godMode && (
                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50" />
                   )}
@@ -126,11 +113,14 @@ export default function LessonsHub() {
           </div>
           
           {godMode && (
-            <div className="mb-6 mx-auto max-w-2xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4 animate-pulse">
+            <div className="mb-6 mx-auto max-w-2xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/50 rounded-xl p-4 shadow-lg shadow-purple-500/20">
               <p className="text-purple-300 font-semibold flex items-center justify-center gap-2">
-                <span className="text-2xl">⚡</span>
-                <span>GOD MODE ACTIVE - All lessons unlocked for demo!</span>
-                <span className="text-2xl">⚡</span>
+                <span className="text-2xl animate-pulse">⚡</span>
+                <span>GOD MODE ACTIVE - All lessons unlocked for full access!</span>
+                <span className="text-2xl animate-pulse">⚡</span>
+              </p>
+              <p className="text-purple-400 text-xs text-center mt-2">
+                Click the button again to lock lessons and return to normal progression
               </p>
             </div>
           )}
@@ -339,23 +329,33 @@ export default function LessonsHub() {
       
       {/* God Mode Indicator - Bottom Right */}
       {godMode && (
-        <div className="fixed bottom-8 right-8 z-50 animate-bounce">
-          <div className="relative">
+        <div className="fixed bottom-8 right-8 z-50">
+          <div className="relative group cursor-pointer" onClick={toggleGodMode}>
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur-xl animate-pulse" />
-            <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2">
-              <span className="text-xl">⚡</span>
-              <span className="font-bold text-sm">GOD MODE</span>
-              <span className="text-xl">⚡</span>
+            <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 group-hover:scale-110 transition-transform duration-300">
+              <span className="text-xl animate-pulse">⚡</span>
+              <span className="font-bold text-sm">GOD MODE ACTIVE</span>
+              <span className="text-xl animate-pulse">⚡</span>
+            </div>
+            <div className="absolute -top-8 right-0 bg-slate-900 text-purple-300 text-xs px-3 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              Click to disable
             </div>
           </div>
         </div>
       )}
       
       {/* Keyboard Shortcut Hint */}
-      <div className="fixed bottom-4 left-4 text-xs text-slate-600 opacity-50 hover:opacity-100 transition-opacity">
-        <kbd className="px-2 py-1 bg-slate-800 rounded border border-slate-700">Ctrl</kbd> + 
-        <kbd className="px-2 py-1 bg-slate-800 rounded border border-slate-700 mx-1">Shift</kbd> + 
-        <kbd className="px-2 py-1 bg-slate-800 rounded border border-slate-700">G</kbd> = Toggle God Mode
+      <div className="fixed bottom-4 left-4 text-xs text-slate-600 opacity-50 hover:opacity-100 transition-opacity bg-slate-900/50 backdrop-blur px-3 py-2 rounded-lg border border-slate-800">
+        <div className="flex items-center gap-2">
+          <span className="text-slate-500">Shortcut:</span>
+          <kbd className="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-slate-400">Ctrl</kbd>
+          <span className="text-slate-700">+</span>
+          <kbd className="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-slate-400">Shift</kbd>
+          <span className="text-slate-700">+</span>
+          <kbd className="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-slate-400">G</kbd>
+          <span className="text-slate-500">=</span>
+          <span className="text-purple-500">⚡ God Mode</span>
+        </div>
       </div>
     </div>
   );
