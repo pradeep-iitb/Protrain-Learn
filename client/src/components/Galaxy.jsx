@@ -122,6 +122,51 @@ vec3 StarLayer(vec2 uv) {
   return col;
 }
 
+void main() {
+  // Base UV in 0..1
+  vec2 uv = vUv;
+
+  // Centered coords relative to focal point, with aspect correction
+  vec2 centered = uv - uFocal;
+  centered.x *= uResolution.z; // aspect ratio correction
+
+  // Apply slow rotation over time
+  float ang = uRotation.x + uTime * uRotationSpeed;
+  mat2 rot = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
+  vec2 dir = rot * centered;
+
+  // Mouse repulsion effect
+  vec2 m = uMouse - uFocal;
+  m.x *= uResolution.z;
+  float repel = uRepulsionStrength * uMouseActiveFactor * float(uMouseRepulsion);
+  if (repel > 0.0) {
+    vec2 delta = normalize(dir - m + 1e-5);
+    dir += delta * repel * 0.02;
+  }
+
+  // Optional auto-center repulsion
+  if (uAutoCenterRepulsion > 0.0) {
+    vec2 deltaC = normalize(dir + 1e-5);
+    dir += deltaC * uAutoCenterRepulsion * 0.01;
+  }
+
+  // Accumulate star layers with parallax
+  vec3 col = vec3(0.0);
+  for (float i = 0.0; i < NUM_LAYER; i += 1.0) {
+    float layer = i + 1.0;
+    float scale = layer * (2.0 + uDensity);
+    vec2 drift = vec2(uTime * 0.05 * uSpeed * layer, 0.0);
+    vec2 layerUV = dir * scale + drift;
+    col += StarLayer(layerUV) / layer;
+  }
+
+  // Simple tonemap and alpha for transparency
+  col = 1.0 - exp(-col);
+  float a = clamp(max(max(col.r, col.g), col.b), 0.0, 1.0) * 0.85;
+  gl_FragColor = vec4(col, a);
+}
+`;
+
 export default function Galaxy({
   focal = [0.5, 0.5],
   rotation = [1.0, 0.0],

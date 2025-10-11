@@ -1,21 +1,26 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Navbar from '../components/Navbar.jsx';
-import Galaxy from '../components/Galaxy.jsx';
+import Orb from '../components/Orb.jsx';
 import useSpeech from '../hooks/useSpeech.js';
 import { simulate, evaluate, speak } from '../api.js';
 import ChatPanel from '../components/ChatPanel.jsx';
 import FeedbackPanel from '../components/FeedbackPanel.jsx';
 import VoiceOrb from '../components/VoiceOrb.jsx';
-
-const PERSONAS = [
-  'Hardship and anxious',
-  'Willing but forgetful',
-  'Angry and resistant',
-  'Confused about terms'
-];
+import UserDashboard from '../components/UserDashboard.jsx';
+import { LEVELS, getLevelById } from '../config/levels.js';
+import { 
+  initializeProgress, 
+  getCurrentLevel, 
+  setCurrentLevel, 
+  isLevelUnlocked,
+  unlockLevel,
+  saveLevelScore,
+  getLevelScore
+} from '../utils/progressStorage.js';
 
 export default function Trainer() {
-  const [persona, setPersona] = useState(PERSONAS[0]);
+  const [currentLevelId, setCurrentLevelId] = useState(1);
+  const [unlockedLevels, setUnlockedLevels] = useState([1]);
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [feedback, setFeedback] = useState(null);
@@ -25,83 +30,294 @@ export default function Trainer() {
   const [speaking, setSpeaking] = useState(false);
   const { transcript, listening, start, stop, resetTranscript, supported } = useSpeech();
   const disabled = useMemo(() => !supported, [supported]);
+  
+  const currentLevel = getLevelById(currentLevelId);
+  const persona = currentLevel?.persona || 'Default Borrower';
+  
+  // Initialize progress from localStorage
+  useEffect(() => {
+    const progress = initializeProgress();
+    setCurrentLevelId(progress.currentLevel);
+    setUnlockedLevels(progress.unlockedLevels);
+  }, []);
 
   const send = async (text) => {
     try {
       setError('');
-      if (!text?.trim()) return;
+      if (!text?.trim()) {
+        setError('Please provide a message to send.');
+        return;
+      }
+      
+      console.log('Sending message:', text, 'with persona:', persona);
       setBusy(true);
+      
       const res = await simulate({ message: text, persona, sessionId });
+      console.log('Simulate response:', res);
+      
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+      
       const { reply = '', sessionId: sid, messages: updated = [] } = res || {};
-      if (sid) setSessionId(sid);
+      
+      if (sid) {
+        setSessionId(sid);
+        console.log('Session ID:', sid);
+      }
+      
       setMessages(updated);
+      
       if (reply) {
+        console.log('Borrower reply:', reply);
         setSpeaking(true);
-        speak(reply);
-        const onEnd = () => setSpeaking(false);
-        // Attach a small end listener using the SpeechSynthesis queue
-        const check = setInterval(() => {
-          if (!window.speechSynthesis.speaking) { clearInterval(check); onEnd(); }
-        }, 150);
+        
+        // Use proper TTS with cleanup
+        const utterance = new SpeechSynthesisUtterance(reply);
+        utterance.lang = 'en-US';
+        utterance.onend = () => {
+          console.log('Speech ended');
+          setSpeaking(false);
+        };
+        utterance.onerror = (e) => {
+          console.error('TTS error:', e);
+          setSpeaking(false);
+        };
+        
+        window.speechSynthesis.cancel(); // Clear any pending speech
+        window.speechSynthesis.speak(utterance);
       }
     } catch (e) {
-      console.error('send() failed', e);
-      setError('Failed to send message. Please try again.');
+      console.error('send() failed:', e);
+      setError(`Failed to send message: ${e.message}`);
     } finally {
       setBusy(false);
     }
   };
 
-  const onStart = () => { resetTranscript(); start(); };
+  const onStart = () => {
+    console.log('Starting speech recognition...');
+    setError('');
+    resetTranscript();
+    try {
+      start();
+      console.log('Listening started');
+    } catch (e) {
+      console.error('Failed to start listening:', e);
+      setError('Could not start microphone. Please check permissions.');
+    }
+  };
+
   const onStop = async () => {
-    try { if (listening) stop(); const text = transcript?.trim(); if (!text) return; await send(text); }
-    finally { resetTranscript(); }
+    console.log('Stopping speech recognition...');
+    try {
+      if (listening) {
+        stop();
+      }
+      const text = transcript?.trim();
+      console.log('Captured transcript:', text);
+      
+      if (!text) {
+        setError('No speech detected. Please try again.');
+        return;
+      }
+      
+      await send(text);
+    } catch (e) {
+      console.error('onStop failed:', e);
+      setError(`Error: ${e.message}`);
+    } finally {
+      resetTranscript();
+    }
   };
-  const onSendTyped = async () => { const t = typed.trim(); if (!t) return; await send(t); setTyped(''); };
+
+  const onSendTyped = async () => {
+    const t = typed.trim();
+    if (!t) {
+      setError('Please type a message first.');
+      return;
+    }
+    await send(t);
+    setTyped('');
+  };
+
   const onEvaluate = async () => {
-    try { setError(''); setBusy(true); const res = await evaluate(sessionId); setFeedback(res?.feedback || null); }
-    catch (e) { console.error('evaluate() failed', e); setError('Failed to evaluate. Please try again.'); }
-    finally { setBusy(false); }
+    if (!sessionId) {
+      setError('No conversation to evaluate. Start a conversation first.');
+      return;
+    }
+    
+    try {
+      console.log('Evaluating session:', sessionId);
+      setError('');
+      setBusy(true);
+      
+      const res = await evaluate(sessionId);
+      console.log('Evaluation response:', res);
+      
+      if (res?.error) {
+        setError(res.error);
+        return;
+      }
+      
+      const feedbackData = res?.feedback || null;
+      setFeedback(feedbackData);
+      
+      // Check if level passed and save score
+      if (feedbackData && feedbackData.totalScore !== undefined) {
+        const totalScore = feedbackData.totalScore;
+        const passed = totalScore >= currentLevel.passingScore;
+        
+        // Save score to localStorage
+        saveLevelScore(currentLevelId, {
+          persuasion: feedbackData.persuasion || 0,
+          empathy: feedbackData.empathy || 0,
+          negotiation: feedbackData.negotiation || 0,
+          totalScore,
+          passed,
+          levelName: currentLevel.name
+        });
+        
+        // Unlock next level if passed
+        if (passed && currentLevelId < 25) {
+          const nextLevelId = currentLevelId + 1;
+          unlockLevel(nextLevelId);
+          setUnlockedLevels(prev => {
+            if (!prev.includes(nextLevelId)) {
+              return [...prev, nextLevelId].sort((a, b) => a - b);
+            }
+            return prev;
+          });
+        }
+        
+        console.log(passed ? '✅ Level passed!' : '❌ Level not passed. Try again!');
+      }
+    } catch (e) {
+      console.error('evaluate() failed:', e);
+      setError(`Failed to evaluate: ${e.message}`);
+    } finally {
+      setBusy(false);
+    }
   };
-  const onReset = () => { setSessionId(null); setMessages([]); setFeedback(null); resetTranscript(); };
+
+  const onReset = () => {
+    console.log('Resetting conversation');
+    setSessionId(null);
+    setMessages([]);
+    setFeedback(null);
+    setError('');
+    resetTranscript();
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
+  };
 
   return (
-    <div className="min-h-screen bg-black text-slate-200">
+    <div className="relative min-h-screen bg-gradient-to-br from-black via-slate-900 to-black text-slate-200 overflow-hidden">
       <Navbar />
-      <div className="absolute inset-0 -z-10">
-        <Galaxy mouseRepulsion density={1.1} glowIntensity={0.45} saturation={0.6} hueShift={190} />
+
+      {/* Orb background overlay */}
+      <div className="fixed inset-0 z-0 opacity-30 pointer-events-none">
+        <Orb hue={180} hoverIntensity={0.3} rotateOnHover={true} />
       </div>
-      <main className="max-w-5xl mx-auto pt-20 pb-16 px-4 space-y-4">
-        <div className="flex items-center gap-3">
-          <label className="text-sm text-slate-300">Borrower Persona</label>
-          <select value={persona} onChange={e => setPersona(e.target.value)} className="bg-black/40 border border-white/10 rounded p-2 text-slate-200">
-            {PERSONAS.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <button onClick={onReset} className="ml-auto px-3 py-1 border border-white/10 rounded hover:bg-white/10">Reset</button>
+      
+      <main className="relative z-10 max-w-5xl mx-auto pt-20 pb-16 px-4 space-y-4">
+        {/* Dashboard */}
+        <UserDashboard />
+
+        {/* Level Selector with animated border */}
+        <div className="animated-border-box p-6 rounded-lg bg-black/40 backdrop-blur border border-white/10">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-emerald-400 font-display">{currentLevel?.name}</h2>
+              <p className="text-sm text-slate-400 mt-1">
+                {currentLevel?.difficulty} • Passing Score: {currentLevel?.passingScore}/300
+              </p>
+            </div>
+            <button onClick={onReset} className="px-4 py-2 border border-white/10 rounded-lg hover:bg-white/10 transition">
+              🔄 Reset
+            </button>
+          </div>
+          
+          <div className="mb-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700/50">
+            <p className="text-sm text-slate-300 mb-2">
+              <span className="font-semibold text-emerald-400">Persona:</span> {currentLevel?.persona}
+            </p>
+            <p className="text-sm text-slate-300 mb-2">
+              <span className="font-semibold text-emerald-400">Description:</span> {currentLevel?.description}
+            </p>
+            <p className="text-xs text-slate-400">
+              <span className="font-semibold">Traits:</span> {currentLevel?.traits}
+            </p>
+          </div>
+          
+          {/* Level Navigation */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2">
+            {LEVELS.map(level => {
+              const isUnlocked = unlockedLevels.includes(level.id);
+              const isCurrent = level.id === currentLevelId;
+              const levelScore = getLevelScore(level.id);
+              
+              return (
+                <button
+                  key={level.id}
+                  onClick={() => {
+                    if (isUnlocked) {
+                      setCurrentLevelId(level.id);
+                      setCurrentLevel(level.id);
+                      onReset();
+                    }
+                  }}
+                  disabled={!isUnlocked}
+                  className={`
+                    flex-shrink-0 min-w-[60px] px-3 py-2 rounded-lg border-2 transition
+                    ${isCurrent ? 'bg-emerald-500 border-emerald-400 text-black font-bold' : ''}
+                    ${!isCurrent && isUnlocked ? 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600' : ''}
+                    ${!isUnlocked ? 'bg-slate-900 border-slate-800 text-slate-600 cursor-not-allowed' : ''}
+                  `}
+                  title={isUnlocked ? `${level.name}\n${levelScore ? `Score: ${levelScore.totalScore}/300` : 'Not attempted'}` : 'Locked'}
+                >
+                  <div className="text-xs font-semibold">{level.id}</div>
+                  {levelScore && (
+                    <div className="text-[10px] mt-1">
+                      {levelScore.passed ? '✅' : '❌'} {levelScore.totalScore}
+                    </div>
+                  )}
+                  {!isUnlocked && <div className="text-lg">🔒</div>}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {error && (<div className="p-2 text-sm text-red-300 bg-red-900/30 border border-red-800/40 rounded">{error}</div>)}
 
-        <div className="flex items-center gap-2">
+        {/* Voice status indicator */}
+        <div className="animated-border-box flex items-center gap-2 p-3 rounded-lg bg-black/40 backdrop-blur border border-white/10">
           <VoiceOrb active={speaking} />
           <span className="text-sm text-slate-300">Borrower {speaking ? 'speaking…' : 'idle'}</span>
         </div>
 
-        <ChatPanel messages={messages} />
+        {/* Chat panel with animated border */}
+        <div className="animated-border-box rounded-lg bg-black/40 backdrop-blur border border-white/10">
+          <ChatPanel messages={messages} />
+        </div>
 
-        <div className="flex items-center gap-3">
-          <button onClick={onStart} disabled={disabled || listening || busy} className="px-3 py-2 bg-cyan-500 text-black rounded disabled:opacity-50">🎙️ Start</button>
-          <button onClick={onStop} disabled={busy || (!listening && !transcript?.trim())} className="px-3 py-2 bg-slate-800 text-white rounded disabled:opacity-50">⏹ Stop & Send</button>
+        {/* Controls with animated border */}
+        <div className="animated-border-box flex items-center gap-3 p-4 rounded-lg bg-black/40 backdrop-blur border border-white/10">
+          <button onClick={onStart} disabled={disabled || listening || busy} className="px-3 py-2 bg-cyan-500 text-black rounded disabled:opacity-50 hover:bg-cyan-400 transition">🎙️ Start</button>
+          <button onClick={onStop} disabled={busy || (!listening && !transcript?.trim())} className="px-3 py-2 bg-slate-800 text-white rounded disabled:opacity-50 hover:bg-slate-700 transition">⏹ Stop & Send</button>
           <span className="text-sm text-slate-400">{busy ? 'Working…' : listening ? 'Listening…' : 'Idle'} {transcript && `– ${transcript}`}</span>
-          <button onClick={onEvaluate} disabled={!sessionId || busy} className="ml-auto px-3 py-2 bg-emerald-500 text-black rounded disabled:opacity-50">Evaluate</button>
+          <button onClick={onEvaluate} disabled={!sessionId || busy} className="ml-auto px-3 py-2 bg-emerald-500 text-black rounded disabled:opacity-50 hover:bg-emerald-400 transition">Evaluate</button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <input value={typed} onChange={e => setTyped(e.target.value)} placeholder="Type your message…" className="flex-1 bg-black/40 border border-white/10 rounded px-3 py-2" />
-          <button onClick={onSendTyped} disabled={busy || !typed.trim()} className="px-3 py-2 bg-slate-800 text-white rounded disabled:opacity-50">Send</button>
+        {/* Typed input with animated border */}
+        <div className="animated-border-box flex items-center gap-2 p-3 rounded-lg bg-black/40 backdrop-blur border border-white/10">
+          <input value={typed} onChange={e => setTyped(e.target.value)} placeholder="Type your message…" className="flex-1 bg-transparent border-none outline-none text-slate-200 placeholder:text-slate-500" />
+          <button onClick={onSendTyped} disabled={busy || !typed.trim()} className="px-3 py-2 bg-slate-800 text-white rounded disabled:opacity-50 hover:bg-slate-700 transition">Send</button>
         </div>
 
-        <FeedbackPanel feedback={feedback} />
+        <FeedbackPanel feedback={feedback} currentLevelId={currentLevelId} />
       </main>
     </div>
   );

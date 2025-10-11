@@ -1,16 +1,52 @@
 import express from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Session from './models/Session.js';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
+// Simple in-memory session store as a fallback when MongoDB is unavailable
+const memorySessions = new Map();
+let memIdCounter = 1;
+
+function newMemId() {
+  return String(memIdCounter++);
+}
+
 function buildSystemPrompt(persona) {
+  const personaLower = (persona || '').toLowerCase();
+  
+  // Enhanced persona-specific behaviors
+  let personalityTraits = '';
+  if (personaLower.includes('angry') || personaLower.includes('resistant')) {
+    personalityTraits = 'You are frustrated and short-tempered. You may raise your voice initially but can be calmed with empathy.';
+  } else if (personaLower.includes('anxious') || personaLower.includes('hardship')) {
+    personalityTraits = 'You are worried and stressed. You appreciate kindness and need reassurance about available options.';
+  } else if (personaLower.includes('forgetful')) {
+    personalityTraits = 'You often forget dates and details. You need clear reminders and simple instructions.';
+  } else if (personaLower.includes('confused')) {
+    personalityTraits = 'You struggle to understand financial terms. You need patient explanations in simple language.';
+  } else if (personaLower.includes('defensive') || personaLower.includes('evasive')) {
+    personalityTraits = 'You avoid direct answers and deflect questions. You become more cooperative when treated respectfully.';
+  } else if (personaLower.includes('skeptical')) {
+    personalityTraits = 'You question everything and don\'t trust easily. You need transparent explanations and proof.';
+  } else if (personaLower.includes('overwhelmed')) {
+    personalityTraits = 'You have multiple debts and feel hopeless. You need help prioritizing and creating manageable plans.';
+  } else if (personaLower.includes('unemployed')) {
+    personalityTraits = 'You recently lost your job and have no stable income. You need flexible payment arrangements.';
+  } else if (personaLower.includes('medical')) {
+    personalityTraits = 'You are dealing with health issues that caused financial hardship. You need compassionate understanding.';
+  }
+
   return `You are a simulated borrower in a training exercise for debt collection agents.
-- Stay in the role and keep responses concise (1-3 sentences) unless clarification is needed.
-- Persona: ${persona}.
-- Follow compliance: no sharing of PII, avoid abusive language, avoid legal threats.
-- Encourage constructive negotiation: discuss repayment options, hardships, and next steps.
-- If the agent asks for disallowed actions, decline and suggest compliant alternatives.`;
+- Role: ${persona}
+- Personality: ${personalityTraits}
+- Keep responses natural and conversational (1-3 sentences typically)
+- React realistically to the agent's tone: respond positively to empathy, negatively to pressure
+- Mention specific hardships relevant to your persona when appropriate
+- Be willing to negotiate if the agent shows understanding and offers reasonable options
+- Follow compliance: no sharing of sensitive PII, avoid threats
+- If treated poorly, become less cooperative; if treated well, become more willing to work out a solution`;
 }
 
 function toHistory(messages) {
@@ -36,21 +72,26 @@ function fallbackBorrowerReply(persona, agentText = '') {
 }
 
 function fallbackFeedback(messages = []) {
-  // naive signals: count empathy words
+  // naive signals: count empathy words and calculate scores out of 100
   const agentLines = messages.filter(m => m.role === 'agent').map(m => m.text.toLowerCase()).join(' ');
-  const empathyHits = (agentLines.match(/sorry|understand|appreciate|hear you|thanks|thank you/g) || []).length;
-  const empathy = Math.min(10, 4 + empathyHits);
-  const tone = 6;
-  const compliance = 7;
+  const empathyHits = (agentLines.match(/sorry|understand|appreciate|hear you|thanks|thank you|i see|that must be|difficult/g) || []).length;
+  const persuasion = Math.min(100, 50 + empathyHits * 5);
+  const empathy = Math.min(100, 40 + empathyHits * 8);
+  const negotiation = Math.min(100, 45 + empathyHits * 6);
+  const totalScore = persuasion + empathy + negotiation;
+  
   return {
+    persuasion,
     empathy,
-    tone,
-    compliance,
-    summary: 'Fallback evaluation provided due to temporary AI unavailability.',
+    negotiation,
+    totalScore,
+    overall_feedback: 'Fallback evaluation provided due to temporary AI unavailability. Basic analysis shows moderate performance.',
     suggestions: [
       'Acknowledge borrower hardship explicitly before proposing terms.',
-      'Offer 2-3 concrete options (date, amount, autopay).',
-      'Avoid pressure; confirm understanding and next steps.'
+      'Use active listening phrases like "I understand" and "That must be difficult".',
+      'Offer 2-3 concrete payment options (date, amount, autopay).',
+      'Avoid pressure tactics; focus on collaborative problem-solving.',
+      'Confirm borrower understanding and document next steps clearly.'
     ]
   };
 }
@@ -60,8 +101,21 @@ router.post('/simulate', async (req, res) => {
     const { message, persona = 'default', sessionId } = req.body || {};
     if (!message) return res.status(400).json({ error: 'message is required' });
 
-    let session = sessionId ? await Session.findById(sessionId) : null;
-    if (!session) session = await Session.create({ persona, messages: [] });
+    let usingMemory = mongoose.connection.readyState !== 1; // 1 = connected
+    let session = null;
+    if (!usingMemory) {
+      try {
+        session = sessionId ? await Session.findById(sessionId) : null;
+        if (!session) session = await Session.create({ persona, messages: [] });
+      } catch (dbErr) {
+        usingMemory = true;
+      }
+    }
+    if (usingMemory) {
+      const id = sessionId && memorySessions.has(sessionId) ? sessionId : newMemId();
+      session = memorySessions.get(id) || { _id: id, persona, messages: [] };
+      memorySessions.set(id, session);
+    }
 
     session.messages.push({ role: 'agent', text: message });
 
@@ -78,7 +132,11 @@ router.post('/simulate', async (req, res) => {
     }
 
     session.messages.push({ role: 'borrower', text: reply });
-    await session.save();
+    if (!usingMemory) {
+      try { await session.save(); } catch (_) { /* ignore */ }
+    } else {
+      memorySessions.set(session._id, session);
+    }
 
     res.json({ reply, sessionId: session._id, messages: session.messages });
   } catch (err) {
@@ -91,15 +149,41 @@ router.post('/evaluate', async (req, res) => {
   try {
     const { sessionId } = req.body || {};
     if (!sessionId) return res.status(400).json({ error: 'sessionId is required' });
-
-    const session = await Session.findById(sessionId);
+    let usingMemory = mongoose.connection.readyState !== 1;
+    let session = null;
+    if (!usingMemory) {
+      try {
+        session = await Session.findById(sessionId);
+      } catch (dbErr) {
+        usingMemory = true;
+      }
+    }
+    if (usingMemory) {
+      session = memorySessions.get(sessionId);
+    }
     if (!session) return res.status(404).json({ error: 'session_not_found' });
 
-    const rubric = `Evaluate the AGENT's performance in this debt collection training call.
-Return JSON with keys: empathy (0-10), tone (0-10), compliance (0-10), summary (1-2 sentences), suggestions (array of 3-5 items).
-If you cannot evaluate, set all scores to 0 and explain in summary.
+    const rubric = `You are an expert trainer evaluating a debt collection agent's performance.
+Analyze the following conversation transcript and provide detailed feedback.
 
-TRANSCRIPT:\n${toHistory(session.messages)}`;
+Return ONLY valid JSON (no markdown, no extra text) with these exact keys:
+{
+  "persuasion": <number 0-100>,
+  "empathy": <number 0-100>,
+  "negotiation": <number 0-100>,
+  "overall_feedback": "<1-2 sentence summary>",
+  "suggestions": ["<specific actionable tip 1>", "<tip 2>", "<tip 3>", "<tip 4>", "<tip 5>"]
+}
+
+Scoring criteria (each out of 100):
+- persuasion (0-100): How effectively did the agent communicate, build rapport, and influence the borrower toward a positive outcome? Consider communication clarity, tone professionalism, and ability to maintain engagement.
+- empathy (0-100): Did the agent acknowledge the borrower's situation with understanding and compassion? Consider active listening, validation of concerns, and genuine care shown.
+- negotiation (0-100): Did the agent offer solutions, listen to concerns, work toward mutually acceptable resolution, and follow compliance regulations? Consider problem-solving, flexibility, and adherence to ethical practices.
+
+CONVERSATION TRANSCRIPT:
+${toHistory(session.messages)}
+
+Respond with ONLY the JSON object, no other text.`;
     let parsed;
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -107,10 +191,29 @@ TRANSCRIPT:\n${toHistory(session.messages)}`;
       const result = await model.generateContent(rubric);
       const text = (result && result.response && typeof result.response.text === 'function') ? result.response.text() : '';
       try {
-        const jsonMatch = text.match(/[\{\[].*[\}\]]/s);
-        parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+        // Try to extract JSON from response (handles markdown code blocks)
+        let cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+        parsed = JSON.parse(jsonMatch ? jsonMatch[0] : cleanText);
+        
+        // Ensure all required fields exist with scores out of 100
+        if (!parsed.persuasion) parsed.persuasion = 0;
+        if (!parsed.empathy) parsed.empathy = 0;
+        if (!parsed.negotiation) parsed.negotiation = 0;
+        // Calculate total score out of 300
+        parsed.totalScore = (parsed.persuasion || 0) + (parsed.empathy || 0) + (parsed.negotiation || 0);
+        if (!parsed.overall_feedback) parsed.overall_feedback = 'Evaluation completed';
+        if (!parsed.suggestions || !Array.isArray(parsed.suggestions)) parsed.suggestions = [];
       } catch (e) {
-        parsed = { empathy: 0, tone: 0, compliance: 0, summary: 'Could not parse model output', suggestions: [] };
+        console.error('JSON parse error:', e);
+        parsed = { 
+          persuasion: 0, 
+          empathy: 0, 
+          negotiation: 0,
+          totalScore: 0,
+          overall_feedback: 'Could not parse evaluation output', 
+          suggestions: ['Try again with more conversation context'] 
+        };
       }
     } catch (llmErr) {
       console.error('evaluate: LLM failure, using fallback', llmErr?.message || llmErr);
@@ -118,7 +221,11 @@ TRANSCRIPT:\n${toHistory(session.messages)}`;
     }
 
     session.feedback = parsed;
-    await session.save();
+    if (!usingMemory) {
+      try { await session.save(); } catch (_) { /* ignore */ }
+    } else {
+      memorySessions.set(session._id, session);
+    }
 
     res.json({ feedback: parsed });
   } catch (err) {

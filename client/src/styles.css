@@ -2,4 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-body { @apply bg-black text-slate-200; }
+:root { --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; }
+body { background-color: #000; color: rgb(226 232 240); font-family: var(--font-sans); }
+.font-display { font-family: 'Playfair Display', Georgia, 'Times New Roman', serif; }
+
+/* Animated border animation */
+@keyframes border-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2), inset 0 0 10px rgba(16, 185, 129, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.4), inset 0 0 15px rgba(16, 185, 129, 0.2);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+}
+
+.animated-border-box {
+  animation: border-glow 3s ease-in-out infinite;
+  position: relative;
+}
+
+.animated-border-box:hover {
+  animation-duration: 1.5s;
+}
