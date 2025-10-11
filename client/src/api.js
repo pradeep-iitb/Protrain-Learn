@@ -1,7 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
+import { API_ENDPOINTS } from './config/api';
 
 export async function simulate({ message, persona, sessionId }) {
-  const res = await fetch(`${API_BASE}/api/simulate`, {
+  const res = await fetch(API_ENDPOINTS.SIMULATE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, persona, sessionId })
@@ -10,7 +10,7 @@ export async function simulate({ message, persona, sessionId }) {
 }
 
 export async function evaluate(sessionId) {
-  const res = await fetch(`${API_BASE}/api/evaluate`, {
+  const res = await fetch(API_ENDPOINTS.EVALUATE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sessionId })
@@ -27,12 +27,12 @@ export function speak(text, { onEnd } = {}) {
 
 // Lesson Progress API calls
 export async function getUserProgress(userName) {
-  const res = await fetch(`${API_BASE}/api/progress/${encodeURIComponent(userName)}`);
+  const res = await fetch(`${API_ENDPOINTS.PROGRESS}/${encodeURIComponent(userName)}`);
   return res.json();
 }
 
 export async function saveLevelScore(userName, lessonId, levelNumber, scoreData) {
-  const res = await fetch(`${API_BASE}/api/progress/${encodeURIComponent(userName)}/lesson/${lessonId}/level/${levelNumber}`, {
+  const res = await fetch(`${API_ENDPOINTS.PROGRESS}/${encodeURIComponent(userName)}/lesson/${lessonId}/level/${levelNumber}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(scoreData)
@@ -41,13 +41,13 @@ export async function saveLevelScore(userName, lessonId, levelNumber, scoreData)
 }
 
 export async function getUserStats(userName) {
-  const res = await fetch(`${API_BASE}/api/progress/${encodeURIComponent(userName)}/stats`);
+  const res = await fetch(`${API_ENDPOINTS.PROGRESS}/${encodeURIComponent(userName)}/stats`);
   return res.json();
 }
 
 // AI-powered feedback generation
 export async function generateAIFeedback(context) {
-  const res = await fetch(`${API_BASE}/api/generate-feedback`, {
+  const res = await fetch(API_ENDPOINTS.GENERATE_FEEDBACK, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(context)

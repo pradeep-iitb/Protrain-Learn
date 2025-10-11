@@ -1,26 +1,22 @@
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import router from './routes.js';
-
-dotenv.config();
+import { SERVER_CONFIG, DATABASE_CONFIG, CORS_CONFIG } from './config.js';
 
 const app = express();
-
-const PORT = process.env.PORT || 3001;
-const ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 
 // Allow requests from configured origin and any localhost port (dev)
 app.use(
   cors({
     origin: (origin, cb) => {
       if (!origin) return cb(null, true); // same-origin or curl
-      if (origin === ORIGIN) return cb(null, true);
+      if (origin === CORS_CONFIG.ORIGIN) return cb(null, true);
       if (origin.startsWith('http://localhost:')) return cb(null, true);
       return cb(new Error('Not allowed by CORS'));
-    }
+    },
+    credentials: CORS_CONFIG.CREDENTIALS
   })
 );
 app.use(express.json({ limit: '1mb' }));
@@ -33,8 +29,10 @@ app.get('/', (_req, res) => {
 app.use('/api', router);
 
 // Start HTTP server immediately for resilience
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server listening on http://localhost:${PORT}`);
+const server = app.listen(SERVER_CONFIG.PORT, '0.0.0.0', () => {
+  console.log(`✅ Server listening on http://localhost:${SERVER_CONFIG.PORT}`);
+  console.log(`📡 Environment: ${SERVER_CONFIG.NODE_ENV}`);
+  console.log(`🌐 CORS Origin: ${CORS_CONFIG.ORIGIN}`);
   console.log(`📡 Ready to accept requests...`);
 });
 
@@ -42,7 +40,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 server.on('error', (err) => {
   console.error('❌ Server error:', err);
   if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Please free the port and try again.`);
+    console.error(`Port ${SERVER_CONFIG.PORT} is already in use. Please free the port and try again.`);
     process.exit(1);
   }
 });
@@ -50,8 +48,12 @@ server.on('error', (err) => {
 // Connect to MongoDB in the background; do not crash on failure
 (async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, { dbName: 'protrain' });
-    console.log('✅ MongoDB connected');
+    if (DATABASE_CONFIG.MONGODB_URI) {
+      await mongoose.connect(DATABASE_CONFIG.MONGODB_URI, { dbName: 'protrain' });
+      console.log('✅ MongoDB connected');
+    } else {
+      console.warn('⚠️  No MONGODB_URI provided. Running in memory-only mode.');
+    }
   } catch (dbErr) {
     console.warn('⚠️  MongoDB connection failed, continuing without DB. Some features will be transient.');
   }

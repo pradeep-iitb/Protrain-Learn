@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import Session from './models/Session.js';
 import UserProgress from './models/UserProgress.js';
 import mongoose from 'mongoose';
+import { API_KEYS, GEMINI_CONFIG } from './config.js';
 
 const router = express.Router();
 
@@ -122,8 +123,8 @@ router.post('/simulate', async (req, res) => {
 
     let reply = '';
     try {
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const genAI = new GoogleGenerativeAI(API_KEYS.GEMINI);
+      const model = genAI.getGenerativeModel({ model: GEMINI_CONFIG.MODEL });
       const prompt = `${buildSystemPrompt(session.persona)}\n\n${toHistory(session.messages)}\n\nRespond as BORROWER:`;
       const result = await model.generateContent(prompt);
       reply = (result && result.response && typeof result.response.text === 'function') ? result.response.text() : '';
@@ -187,8 +188,8 @@ ${toHistory(session.messages)}
 Respond with ONLY the JSON object, no other text.`;
     let parsed;
     try {
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const genAI = new GoogleGenerativeAI(API_KEYS.GEMINI);
+      const model = genAI.getGenerativeModel({ model: GEMINI_CONFIG.MODEL });
       const result = await model.generateContent(rubric);
       const text = (result && result.response && typeof result.response.text === 'function') ? result.response.text() : '';
       try {
@@ -424,8 +425,8 @@ router.post('/generate-feedback', async (req, res) => {
       userHistory // optional: previous scores/patterns
     } = req.body;
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const genAI = new GoogleGenerativeAI(API_KEYS.GEMINI);
+    const model = genAI.getGenerativeModel({ model: GEMINI_CONFIG.MODEL });
 
     // Build comprehensive prompt
     const prompt = `You are ProTrain.AI, an expert debt collection training coach. Analyze this trainee's performance and provide personalized, encouraging feedback.
