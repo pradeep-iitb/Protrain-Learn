@@ -16,16 +16,29 @@ export default function App() {
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [feedback, setFeedback] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const { transcript, listening, start, stop, resetTranscript, supported } = useSpeech();
 
   const disabled = useMemo(() => !supported, [supported]);
 
   const send = async (text) => {
-    if (!text?.trim()) return;
-    const { reply, sessionId: sid, messages: updated } = await simulate({ message: text, persona, sessionId });
-    setSessionId(sid);
-    setMessages(updated);
-    speak(reply);
+    try {
+      setError('');
+      if (!text?.trim()) return;
+      setBusy(true);
+      const res = await simulate({ message: text, persona, sessionId });
+      if (!res || (!res.reply && !res.messages)) throw new Error('Unexpected response from server');
+      const { reply = '', sessionId: sid, messages: updated = [] } = res;
+      if (sid) setSessionId(sid);
+      setMessages(updated);
+      if (reply) speak(reply);
+    } catch (e) {
+      console.error('send() failed', e);
+      setError('Failed to send message. Please try again.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const onStart = () => {
@@ -34,14 +47,28 @@ export default function App() {
   };
 
   const onStop = async () => {
-    stop();
-    await send(transcript);
-    resetTranscript();
+    try {
+      stop();
+      const text = transcript?.trim();
+      if (!text) return;
+      await send(text);
+    } finally {
+      resetTranscript();
+    }
   };
 
   const onEvaluate = async () => {
-    const { feedback } = await evaluate(sessionId);
-    setFeedback(feedback);
+    try {
+      setError('');
+      setBusy(true);
+      const res = await evaluate(sessionId);
+      setFeedback(res?.feedback || null);
+    } catch (e) {
+      console.error('evaluate() failed', e);
+      setError('Failed to evaluate. Please try again.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const onReset = () => {
@@ -62,13 +89,16 @@ export default function App() {
         <button onClick={onReset} className="ml-auto px-3 py-1 border rounded">Reset</button>
       </div>
 
+      {error && (
+        <div className="p-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded">{error}</div>
+      )}
       <ChatPanel messages={messages} />
 
       <div className="flex items-center gap-3">
-        <button onClick={onStart} disabled={disabled || listening} className="px-3 py-2 bg-blue-600 text-white rounded disabled:opacity-50">🎙️ Start</button>
-        <button onClick={onStop} disabled={disabled || !listening} className="px-3 py-2 bg-slate-700 text-white rounded disabled:opacity-50">⏹ Stop & Send</button>
+        <button onClick={onStart} disabled={disabled || listening || busy} className="px-3 py-2 bg-blue-600 text-white rounded disabled:opacity-50">🎙️ Start</button>
+        <button onClick={onStop} disabled={disabled || !listening || busy} className="px-3 py-2 bg-slate-700 text-white rounded disabled:opacity-50">⏹ Stop & Send</button>
         <span className="text-sm text-slate-600">{listening ? 'Listening...' : 'Idle'} {transcript && `– ${transcript}`}</span>
-        <button onClick={onEvaluate} disabled={!sessionId} className="ml-auto px-3 py-2 bg-emerald-600 text-white rounded disabled:opacity-50">Evaluate</button>
+        <button onClick={onEvaluate} disabled={!sessionId || busy} className="ml-auto px-3 py-2 bg-emerald-600 text-white rounded disabled:opacity-50">{busy ? 'Working…' : 'Evaluate'}</button>
       </div>
 
       <FeedbackPanel feedback={feedback} />

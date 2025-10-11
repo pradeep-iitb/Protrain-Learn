@@ -31,8 +31,8 @@ router.post('/simulate', async (req, res) => {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `${buildSystemPrompt(session.persona)}\n\n${toHistory(session.messages)}\n\nRespond as BORROWER:`;
-    const result = await model.generateContent(prompt);
-    const reply = result.response.text();
+  const result = await model.generateContent(prompt);
+  const reply = (result && result.response && typeof result.response.text === 'function') ? result.response.text() : '';
 
     session.messages.push({ role: 'borrower', text: reply });
     await session.save();
@@ -61,8 +61,8 @@ If you cannot evaluate, set all scores to 0 and explain in summary.
 
 TRANSCRIPT:\n${toHistory(session.messages)}`;
 
-    const result = await model.generateContent(rubric);
-    const text = result.response.text();
+  const result = await model.generateContent(rubric);
+  const text = (result && result.response && typeof result.response.text === 'function') ? result.response.text() : '';
 
     let parsed;
     try {
