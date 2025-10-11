@@ -122,7 +122,7 @@ router.post('/simulate', async (req, res) => {
     let reply = '';
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       const prompt = `${buildSystemPrompt(session.persona)}\n\n${toHistory(session.messages)}\n\nRespond as BORROWER:`;
       const result = await model.generateContent(prompt);
       reply = (result && result.response && typeof result.response.text === 'function') ? result.response.text() : '';
@@ -187,7 +187,7 @@ Respond with ONLY the JSON object, no other text.`;
     let parsed;
     try {
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       const result = await model.generateContent(rubric);
       const text = (result && result.response && typeof result.response.text === 'function') ? result.response.text() : '';
       try {
