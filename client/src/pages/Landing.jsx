@@ -49,8 +49,8 @@ export default function Landing() {
     <div className="relative min-h-screen bg-black text-slate-200 overflow-x-hidden">
       <Navbar />
       
-      {/* Galaxy background - fixed positioning for visibility */}
-      <div className="fixed inset-0 z-0">
+      {/* Galaxy background - fixed positioning with fallback black background */}
+      <div className="fixed inset-0 z-0 bg-black">
         <Galaxy mouseRepulsion density={1} glowIntensity={0.6} saturation={0.6} hueShift={150} />
       </div>
 
@@ -73,11 +73,11 @@ export default function Landing() {
         ))}
       </div>
       
-      {/* Main content container */}
-      <main className="relative z-10">
+      {/* Main content container - GPU accelerated */}
+      <main className="relative z-10 will-change-scroll" style={{ transform: 'translateZ(0)' }}>
         
         {/* HERO SECTION */}
-        <section id="hero" className="min-h-screen flex items-center justify-center px-4">
+        <section id="hero" className="min-h-screen flex items-center justify-center px-4 bg-black/50 backdrop-blur-sm">
           <div className="max-w-3xl mx-auto text-center">
             <p className="text-sm md:text-base text-emerald-400 font-semibold tracking-wider uppercase mb-4">
               AI-Powered Collections Agent Trainer 
@@ -103,7 +103,7 @@ export default function Landing() {
         </section>
 
         {/* TECH STACK SECTION */}
-        <section id="tech" className="min-h-screen flex items-center justify-center px-4 py-20">
+        <section id="tech" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
           <div className="max-w-6xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               Our Tech Stack
@@ -157,7 +157,7 @@ export default function Landing() {
         </section>
 
         {/* FEATURES SECTION */}
-        <section id="features" className="min-h-screen flex items-center justify-center px-4 py-20">
+        <section id="features" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
           <div className="max-w-6xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               Our Features
@@ -205,7 +205,7 @@ export default function Landing() {
         </section>
 
         {/* TABLE OF CONTENTS SECTION */}
-        <section id="contents" className="min-h-screen flex items-center justify-center px-4 py-20">
+        <section id="contents" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
           <div className="max-w-4xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               Table of Contents
@@ -260,7 +260,7 @@ export default function Landing() {
         </section>
 
         {/* WHAT THIS MANUAL COVERS SECTION */}
-        <section id="covers" className="min-h-screen flex items-center justify-center px-4 py-20">
+        <section id="covers" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
           <div className="max-w-4xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               What This Manual Covers
@@ -297,7 +297,7 @@ export default function Landing() {
         </section>
 
         {/* OUR MISSION SECTION */}
-        <section id="mission" className="min-h-screen flex items-center justify-center px-4 py-20">
+        <section id="mission" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
           <div className="max-w-5xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               Our Mission at Resolve First Collections
@@ -335,7 +335,7 @@ export default function Landing() {
         </section>
 
         {/* YOUR ROLE MATTERS SECTION */}
-        <section id="role" className="min-h-screen flex items-center justify-center px-4 py-20">
+        <section id="role" className="min-h-screen flex items-center justify-center px-4 py-20 bg-black/50 backdrop-blur-sm">
           <div className="max-w-4xl mx-auto">
             <h2 className="font-display text-4xl md:text-5xl font-bold text-white text-center mb-4">
               Your Role Matters
