@@ -176,10 +176,6 @@ export default function Landing() {
                   <span className="font-bold text-emerald-400 min-w-[2rem]">5.</span>
                   <span className="text-lg">Third-Party Debt Collection Explained</span>
                 </li>
-                <li className="flex items-start gap-3 hover:text-slate-500 transition line-through">
-                  <span className="font-bold text-slate-600 min-w-[2rem]">6.</span>
-                  <span className="text-lg text-slate-600">Toll Debt: Understanding What We Collect (Skipped)</span>
-                </li>
                 <li className="flex items-start gap-3 hover:text-emerald-400 transition cursor-pointer">
                   <span className="font-bold text-emerald-400 min-w-[2rem]">7.</span>
                   <span className="text-lg">The Art of the Collection Call</span>
