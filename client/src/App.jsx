@@ -4,14 +4,9 @@ import Landing from './pages/Landing.jsx';
 
 // Lazy load lesson components for better performance
 const LessonsHub = lazy(() => import('./pages/LessonsHub.jsx'));
-const Lesson1 = lazy(() => import('./pages/Lesson1.jsx'));
-const Lesson2 = lazy(() => import('./pages/Lesson2.jsx'));
-const Lesson3 = lazy(() => import('./pages/Lesson3.jsx'));
-// Lesson 4 removed (placeholder)
-const Lesson5 = lazy(() => import('./pages/Lesson5.jsx'));
-// Lesson 6 removed (placeholder)
-const Lesson7 = lazy(() => import('./pages/Lesson7.jsx'));
-const Lesson8 = lazy(() => import('./pages/Lesson8.jsx'));
+const Lesson1 = lazy(() => import('./pages/Lesson1.jsx'));  // Puzzles
+const Lesson2 = lazy(() => import('./pages/Lesson2.jsx'));  // Chat Mode
+const Lesson8 = lazy(() => import('./pages/Lesson8.jsx'));  // Voice Mode
 
 // Lazy load appendix pages
 const AppendixA = lazy(() => import('./pages/AppendixA.jsx'));
@@ -36,12 +31,13 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/lessons" element={<LessonsHub />} />
-          <Route path="/lessons/1" element={<Lesson1 />} />
-          <Route path="/lessons/2" element={<Lesson2 />} />
-          <Route path="/lessons/3" element={<Lesson3 />} />
-          <Route path="/lessons/4" element={<Lesson5 />} />
-          <Route path="/lessons/5" element={<Lesson7 />} />
-          <Route path="/lessons/6" element={<Lesson8 />} />
+          
+          {/* Active Training Modes */}
+          <Route path="/lessons/1" element={<Lesson1 />} />   {/* Puzzles */}
+          <Route path="/lessons/2" element={<Lesson2 />} />   {/* Chat Mode */}
+          <Route path="/lessons/8" element={<Lesson8 />} />   {/* Voice Mode */}
+          
+          {/* Reference Materials */}
           <Route path="/appendix/a" element={<AppendixA />} />
           <Route path="/appendix/b" element={<AppendixB />} />
           <Route path="/appendix/c" element={<AppendixC />} />

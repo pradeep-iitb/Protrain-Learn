@@ -79,7 +79,7 @@ const ADVENTURE_LEVELS = [
   }
 ];
 
-export default function Lesson3() {
+export default function Lesson2() {
   const navigate = useNavigate();
   const [lessonProgress, setLessonProgress] = useState(null);
   const [currentLevel, setCurrentLevel] = useState(1);

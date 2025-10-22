@@ -179,21 +179,26 @@ export default function Lesson8() {
       if (listening) {
         stop();
       }
+      
+      // Wait a moment for the final transcript to be captured
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       const text = transcript?.trim();
       console.log('Captured transcript:', text);
       
       if (!text) {
-        setError('No speech detected. Please try again.');
+        setError('No speech detected. Please try again and speak clearly.');
         setConnectionStatus('ready');
+        resetTranscript();
         return;
       }
       
       await send(text);
+      resetTranscript();
     } catch (e) {
       console.error('onStop failed:', e);
       setError(`Error: ${e.message}`);
       setConnectionStatus('ready');
-    } finally {
       resetTranscript();
     }
   };
@@ -391,9 +396,30 @@ export default function Lesson8() {
           </div>
         </div>
 
+        {!supported && (
+          <div className="mb-4 p-4 text-sm text-amber-300 bg-amber-900/30 border border-amber-800/40 rounded-lg">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <div className="font-semibold mb-1">Speech Recognition Not Supported</div>
+                <div className="text-xs">
+                  Your browser doesn't support speech recognition. Please use Chrome, Edge, or Safari on desktop, or use the text input below.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {error && (
-          <div className="mb-4 p-4 text-sm text-red-300 bg-red-900/30 border border-red-800/40 rounded-lg">
-            {error}
+          <div className="mb-4 p-4 text-sm text-red-300 bg-red-900/30 border border-red-800/40 rounded-lg flex items-start gap-2">
+            <span className="text-xl">❌</span>
+            <div className="flex-1">{error}</div>
+            <button 
+              onClick={() => setError('')}
+              className="text-red-400 hover:text-red-300 transition"
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -474,10 +500,13 @@ export default function Lesson8() {
               className={`px-6 py-3 rounded-lg font-semibold disabled:opacity-50 transition-all duration-300 ${
                 listening 
                   ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse' 
+                  : disabled
+                  ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
                   : 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105'
               }`}
+              title={disabled ? 'Speech recognition not supported in this browser. Use Chrome, Edge, or Safari.' : listening ? 'Currently recording...' : 'Click to start voice input'}
             >
-              {listening ? '🔴 Recording...' : '🎙️ Start Voice'}
+              {listening ? '🔴 Recording...' : disabled ? '🎙️ Voice (Unsupported)' : '🎙️ Start Voice'}
             </button>
             <button 
               onClick={onStop} 

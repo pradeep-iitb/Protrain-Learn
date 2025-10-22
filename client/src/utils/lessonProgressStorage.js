@@ -7,53 +7,29 @@
 const STORAGE_KEY = 'protrain_lesson_progress';
 const USER_NAME = 'Pradeep Kumawat';
 
-// Lesson configuration - 6 core lessons (renumbered 1-6)
+// Lesson configuration - 3 main training modes
 export const LESSONS = [
   {
     id: 1,
-    title: 'Understanding Debt and Why It Matters',
-    description: 'Follow an interactive story of an unaware driver and learn about debt consequences',
-    icon: '📚',
-    totalLevels: 5,
+    title: 'Puzzles',
+    description: 'Challenge yourself with scenario-based puzzles and story-driven decision-making',
+    icon: '🧩',
+    totalLevels: 6,
     type: 'interactive-story'
   },
   {
     id: 2,
-    title: 'Professional Debt Collection',
-    description: 'Navigate complex scenarios in this choose-your-own-adventure module',
-    icon: '🎯',
+    title: 'Chat Mode',
+    description: 'Practice text-based conversations with AI-powered borrower responses',
+    icon: '💬',
     totalLevels: 6,
     type: 'choose-adventure'
   },
   {
-    id: 3,
-    title: 'The Regulatory Landscape',
-    description: 'Master compliance rules with AI-powered simulation and real-time feedback',
-    icon: '⚖️',
-    totalLevels: 8,
-    type: 'compliance-sim'
-  },
-  {
-    id: 4,
-    title: 'The Art of the Collection Call',
-    description: 'Practice with AI consumers showing various emotional states',
-    icon: '💬',
-    totalLevels: 10,
-    type: 'role-play'
-  },
-  {
-    id: 5,
-    title: 'Compliance Checklist and Quick Reference',
-    description: 'Test your knowledge with fast-paced interactive quiz challenges',
-    icon: '✅',
-    totalLevels: 6,
-    type: 'quiz-game'
-  },
-  {
-    id: 6,
-    title: 'Practice Scenarios and Role-Playing',
-    description: 'Master all 25 real-world scenarios with dynamic AI consumers',
-    icon: '🎭',
+    id: 8,
+    title: 'Voice Mode',
+    description: 'Master all 25 real-world scenarios with voice-interactive AI personas',
+    icon: '�️',
     totalLevels: 25,
     type: 'practice-scenarios'
   }
