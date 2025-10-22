@@ -9,6 +9,7 @@ import FeedbackPanel from '../components/FeedbackPanel';
 import useSpeech from '../hooks/useSpeech';
 import { simulate, evaluate } from '../api';
 import { LEVELS, getLevelById } from '../config/levels';
+import { saveRecentFeedback } from '../utils/feedbackStorage';
 import {
   getLessonProgress,
   startLesson,
@@ -240,6 +241,13 @@ export default function Lesson8() {
       if (feedbackData && feedbackData.totalScore !== undefined) {
         const totalScore = feedbackData.totalScore;
         const passed = totalScore >= currentLevel.passingScore;
+        
+        // Save to recent feedback for Dashboard
+        saveRecentFeedback(
+          feedbackData,
+          'voice',
+          currentLevel.persona || `Level ${currentLevelId}`
+        );
         
         // Save score to lesson progress
         const scoreData = {

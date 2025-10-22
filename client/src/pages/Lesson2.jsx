@@ -8,6 +8,7 @@ import {
   saveLevelScore,
   isLevelUnlocked
 } from '../utils/lessonProgressStorage';
+import { saveRecentFeedback } from '../utils/feedbackStorage';
 import { simulate, evaluate } from '../api';
 
 const ADVENTURE_LEVELS = [
@@ -242,6 +243,18 @@ export default function Lesson2() {
         ...feedback,
         averageScore: avgScore
       });
+
+      // Save to recent feedback for Dashboard
+      saveRecentFeedback(
+        {
+          persuasion: feedback.persuasion || 0,
+          empathy: feedback.empathy || 0,
+          negotiation: feedback.negotiation || 0,
+          totalScore: avgScore
+        },
+        'chat',
+        level.scenario.character || level.title
+      );
 
       // Save progress
       const passed = avgScore >= level.passingScore;
